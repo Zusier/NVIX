@@ -1,0 +1,14 @@
+[package]
+name = "nvix"
+version = "0.1.0"
+edition = "2021"
+author = "Zusier"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = 3
+
+[dependencies]
+clap = { version = "3.2.12", features = ["derive"] }
