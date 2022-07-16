@@ -1,5 +1,4 @@
 use clap::Parser;
-use dl::Driver;
 
 mod dl;
 #[cfg(test)]
