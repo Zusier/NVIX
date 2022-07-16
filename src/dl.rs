@@ -89,7 +89,7 @@ pub fn new_link(driver: &Driver) -> Result<Vec<String>, Box<dyn Error>> {
 
     // Construct link with values that always exist
     let links: Vec<String> = DriverWindowsVersion::iter().map(|winver| {
-        let link: String = format!("{BASE_LINK}/{version}/{version}-{platform}-{winver}-64bit-international{channel}{edition}-whql.exe");
+        let link: String = format!("{BASE_LINK}/{version}/{version}-{platform}{winver}-64bit-international{channel}{edition}-whql.exe");
         link
     }).collect();
 
