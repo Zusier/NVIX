@@ -95,3 +95,13 @@ pub fn new_link(driver: &Driver) -> Result<Vec<String>, Box<dyn Error>> {
 
     Ok(links)
 }
+
+pub fn check_link(link: &str) -> Result<(), Box<dyn Error>> {
+    // Check if link exists
+    let resp = reqwest::blocking::get(link)?;
+    if resp.status().is_success() {
+        return Ok(());
+    } else {
+        return Err(resp.status().to_string().into());
+    }
+}

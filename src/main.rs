@@ -1,6 +1,9 @@
 use clap::Parser;
+use dl::Driver;
 
 mod dl;
+#[cfg(test)]
+mod tests;
 
 /// A light-weight program to download, strip, tweak, and install a NVIDIA driver
 #[derive(Parser, Debug)]
@@ -13,6 +16,7 @@ struct Args {
     test: bool,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Args::parse();
 }
