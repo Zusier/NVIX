@@ -96,9 +96,9 @@ pub fn new_link(driver: &Driver) -> Result<Vec<String>, Box<dyn Error>> {
     Ok(links)
 }
 
-pub fn check_link(link: &str) -> Result<(), Box<dyn Error>> {
+pub async fn check_link(link: &str) -> Result<(), Box<dyn Error>> {
     // Check if link exists
-    let resp = reqwest::blocking::get(link)?;
+    let resp = reqwest::get(link).await?;
     if resp.status().is_success() {
         return Ok(());
     } else {

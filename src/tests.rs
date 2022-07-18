@@ -1,12 +1,19 @@
 use crate::dl::{self, Driver};
 
+// Allow for async to be used in tests
+macro_rules! bo {
+    ($e:expr) => {
+      tokio_test::block_on($e)
+    };
+  }
+
 fn test_links(driver: &Driver) -> Vec<String> {
     let links = dl::new_link(&driver).unwrap();
 
     let mut valid: Vec<String> = Vec::new();
 
     for link in links {
-        let result = dl::check_link(&link);
+        let result = bo!(dl::check_link(&link));
         if result.is_ok() {
             valid.push(link);
         }
