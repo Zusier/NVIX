@@ -1,11 +1,14 @@
-use crate::{dl::{self, Driver}, nvapi};
+use crate::{
+    dl::{self, Driver},
+    nvapi,
+};
 
 // Allow for async to be used in tests
 macro_rules! bo {
     ($e:expr) => {
-      tokio_test::block_on($e)
+        tokio_test::block_on($e)
     };
-  }
+}
 
 fn test_links(driver: &Driver) -> Vec<String> {
     let links = dl::new_link(&driver).unwrap();
@@ -32,7 +35,7 @@ fn test_link_generation_validation() {
 
     let valid = test_links(&driver);
 
-	assert!(valid.len() > 0);
+    assert!(valid.len() > 0);
 }
 
 #[test]
@@ -46,7 +49,7 @@ fn test_link_notebook_studio() {
 
     let valid = test_links(&driver);
 
-	assert!(valid.len() > 0);
+    assert!(valid.len() > 0);
 }
 
 #[test]
@@ -60,7 +63,7 @@ fn test_link_old_std() {
 
     let valid = test_links(&driver);
 
-	assert!(valid.len() > 0);
+    assert!(valid.len() > 0);
 }
 
 #[test]

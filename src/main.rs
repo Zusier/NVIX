@@ -1,7 +1,9 @@
-use clap::Parser;
+use std::error::Error;
 
+use clap::Parser;
 mod dl;
 mod nvapi;
+mod tui;
 #[cfg(test)]
 mod tests;
 
@@ -17,6 +19,8 @@ struct Args {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
+
+    Ok(())
 }
