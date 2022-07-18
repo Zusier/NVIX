@@ -11,11 +11,11 @@ lto = true
 opt-level = 3
 
 [dependencies]
-clap = { version = "3.2.12", features = ["derive"] }
-reqwest = { version = "0.11.11", features = ["json", "blocking"] }
-tokio = { version = "1.20.0", features = ["full"] }
+clap = { version = "3.2.12", default-features = false, features = ["derive", "color", "std"] }
+reqwest = { version = "0.11.11", default-features = false, features = ["default-tls"] }
+tokio = { version = "1.20.0", default-features = false, features = ["macros", "rt-multi-thread"] }
 serde = { version = "1.0", features = ["derive"] }
-quick-xml = { version = "0.23.0", features = ["serialize"] }
+quick-xml = { version = "0.23.0", default-features= false, features = ["serde", "serialize"] }
 
 [dev-dependencies]
 tokio-test = { version = "0.4.2" }
