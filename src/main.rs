@@ -1,6 +1,7 @@
 use clap::Parser;
 
 mod dl;
+mod nvapi;
 #[cfg(test)]
 mod tests;
 

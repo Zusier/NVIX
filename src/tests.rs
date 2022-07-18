@@ -1,4 +1,4 @@
-use crate::dl::{self, Driver};
+use crate::{dl::{self, Driver}, nvapi};
 
 // Allow for async to be used in tests
 macro_rules! bo {
@@ -61,4 +61,17 @@ fn test_link_old_std() {
     let valid = test_links(&driver);
 
 	assert!(valid.len() > 0);
+}
+
+#[test]
+fn test_gpu_list() {
+    let gpus = bo!(nvapi::get_gpu_list()).unwrap();
+
+    assert!(gpus.len() > 0);
+    for gpu in gpus {
+        if gpu.name.contains("GeForce RTX 3090 Ti") {
+            assert_eq!(gpu.series, 120);
+            assert_eq!(gpu.id, 985);
+        }
+    }
 }
