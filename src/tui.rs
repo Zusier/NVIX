@@ -6,7 +6,7 @@ use std::{
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Corner, Direction, Layout},
+    layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
@@ -233,7 +233,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                     Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(" to exit, "),
                     Span::styled("s", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::raw(" to search."),
+                    Span::raw(" to search, Arrow keys to navigate and Enter to select."),
                 ],
                 Style::default().add_modifier(Modifier::RAPID_BLINK),
             ),
