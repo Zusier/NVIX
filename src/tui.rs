@@ -1,3 +1,4 @@
+///! For now this is for querying a driver. Likely in the future it will also be used to select older drivers, components and such.
 use crate::nvapi::{xml::get_gpu_list, xml::XmlGpuEntry};
 use crossterm::{
     self,
@@ -16,8 +17,6 @@ use tui::{
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame, Terminal,
 };
-///! For now this is for querying a driver. Likely in the future it will also be used to select older drivers, components and such.
-use unicode_width::UnicodeWidthStr;
 
 pub async fn gpu_selector() -> Result<Option<XmlGpuEntry>, Box<dyn Error>> {
     // setup terminal
@@ -267,7 +266,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
             f.set_cursor(
                 // Put cursor past the end of the input text
-                chunks[1].x + app.query.width() as u16 + 1,
+                chunks[1].x + app.query.len() as u16 + 1,
                 // Move one line down, from the border to the input line
                 chunks[1].y + 1,
             )

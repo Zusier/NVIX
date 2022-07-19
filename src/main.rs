@@ -4,6 +4,7 @@ use clap::Parser;
 mod nvapi;
 #[cfg(test)]
 mod tests;
+#[cfg(feature="tui")]
 mod tui;
 
 /// A light-weight program to download, strip, tweak, and install a NVIDIA driver

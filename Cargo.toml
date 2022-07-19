@@ -4,11 +4,16 @@ version = "0.1.0"
 edition = "2021"
 author = "Zusier"
 
+[features]
+default = ["tui"]
+tui = ["dep:tui", "dep:crossterm"]
+
 [profile.release]
 panic = "abort"
 codegen-units = 1
 lto = true
 opt-level = 3
+strip = true
 
 [dependencies]
 clap = { version = "3.2.12", default-features = false, features = ["derive", "color", "std"] }
@@ -16,9 +21,10 @@ reqwest = { version = "0.11.11", default-features = false, features = ["default-
 tokio = { version = "1.20.0", default-features = false, features = ["macros", "rt-multi-thread"] }
 serde = { version = "1.0", features = ["derive"] }
 quick-xml = { version = "0.23.0", default-features= false, features = ["serde", "serialize"] }
-tui = "0.18"
-crossterm = "0.23"
-unicode-width = "0.1.9"
+tui = { version = "0.18", optional= true }
+crossterm = { version = "0.23.2", optional= true }
+winreg = { version = "0.10.1", default-features = false }
+regex = { default-features = false, features = ["perf", "perf-inline", "perf-cache", "std"], version = "1.6.0"}
 
 [dev-dependencies]
 tokio-test = { version = "0.4.2" }

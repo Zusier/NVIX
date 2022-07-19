@@ -1,6 +1,4 @@
-use crate::{
-    nvapi::{self, Driver},
-};
+use crate::nvapi::{self, Driver};
 
 // Allow for async to be used in tests
 macro_rules! bo {

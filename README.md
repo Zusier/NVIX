@@ -6,6 +6,7 @@ This tool is highly inspired by [Aetopia's NVDDL](https://github.com/Aetopia/NVI
 ## Goals
 
 - [x] Ability to generate *valid* links
+- [x] Detect GPU
 - [ ] Download links
 - [ ] Run installer
 - [ ] Ability to strip components
