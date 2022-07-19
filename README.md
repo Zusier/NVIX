@@ -2,6 +2,7 @@
 
 A fast and portable NVIDIA Driver installer.
 
+This tool is highly inspired by [Aetopia's NVDDL](https://github.com/Aetopia/NVIDIA-Driver-Downloader) I would recommend you check that out aswell.
 ## Goals
 
 - [x] Ability to generate *valid* links
