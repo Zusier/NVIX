@@ -1,11 +1,10 @@
 use std::error::Error;
 
 use clap::Parser;
-mod dl;
 mod nvapi;
-mod tui;
 #[cfg(test)]
 mod tests;
+mod tui;
 
 /// A light-weight program to download, strip, tweak, and install a NVIDIA driver
 #[derive(Parser, Debug)]

@@ -1,5 +1,9 @@
-///! For now this is for querying a driver. Likely in the future it will also be used to select older drivers, components and such.
-use unicode_width::UnicodeWidthStr;
+use crate::nvapi::{xml::get_gpu_list, xml::XmlGpuEntry};
+use crossterm::{
+    self,
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen},
+};
 use std::{
     error::Error,
     time::{Duration, Instant},
@@ -12,39 +16,33 @@ use tui::{
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame, Terminal,
 };
-use crossterm::{
-    self,
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen},
-};
-use crate::nvapi::{get_gpu_list, XmlGpuEntry};
-
+///! For now this is for querying a driver. Likely in the future it will also be used to select older drivers, components and such.
+use unicode_width::UnicodeWidthStr;
 
 pub async fn gpu_selector() -> Result<Option<XmlGpuEntry>, Box<dyn Error>> {
-	   // setup terminal
-	   crossterm::terminal::enable_raw_mode()?;
-	   let mut stdout = std::io::stdout();
-	   crossterm::execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-	   let backend = CrosstermBackend::new(stdout);
-	   let mut terminal = Terminal::new(backend)?;
+    // setup terminal
+    crossterm::terminal::enable_raw_mode()?;
+    let mut stdout = std::io::stdout();
+    crossterm::execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
 
-	   // create app and run it
-	   let tick_rate = Duration::from_millis(125);
-	   let app = App::new();
-	   let res = run_app(&mut terminal, app.await, tick_rate);
+    // create app and run it
+    let tick_rate = Duration::from_millis(125);
+    let app = App::new();
+    let res = run_app(&mut terminal, app.await, tick_rate);
 
-	   // restore terminal
-	   crossterm::terminal::disable_raw_mode()?;
-	   crossterm::execute!(
-		   terminal.backend_mut(),
-		   LeaveAlternateScreen,
-		   DisableMouseCapture
-	   )?;
-	   terminal.show_cursor()?;
+    // restore terminal
+    crossterm::terminal::disable_raw_mode()?;
+    crossterm::execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
 
-	   res
+    res
 }
-
 
 #[derive(Clone)]
 struct StatefulList<T> {
@@ -121,7 +119,6 @@ impl<'a> App {
     }
 }
 
-
 fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
     mut app: App,
@@ -148,7 +145,9 @@ fn run_app<B: Backend>(
                         KeyCode::Up => app.filtered_items.previous(),
                         KeyCode::Enter => {
                             if let Some(item) = app.filtered_items.state.selected() {
-                                return Ok(Some(app.filtered_items.items.get(item).unwrap().clone()));
+                                return Ok(Some(
+                                    app.filtered_items.items.get(item).unwrap().clone(),
+                                ));
                             }
                         }
                         _ => {}
@@ -225,33 +224,32 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         )
         .highlight_symbol("> ");
 
-
-        let (msg, style) = match app.input_mode {
-            InputMode::Normal => (
-                vec![
-                    Span::raw("Press "),
-                    Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::raw(" to exit, "),
-                    Span::styled("s", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::raw(" to search, Arrow keys to navigate and Enter to select."),
-                ],
-                Style::default().add_modifier(Modifier::RAPID_BLINK),
-            ),
-            InputMode::Search => (
-                vec![
-                    Span::raw("Press "),
-                    Span::styled("Esc", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::raw(" to stop searching, "),
-                    Span::styled("Enter", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::raw(" to confirm your search"),
-                ],
-                Style::default(),
-            ),
-        };
-        let mut text = Text::from(Spans::from(msg));
-        text.patch_style(style);
-        let help_message = Paragraph::new(text);
-        f.render_widget(help_message, chunks[2]);
+    let (msg, style) = match app.input_mode {
+        InputMode::Normal => (
+            vec![
+                Span::raw("Press "),
+                Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" to exit, "),
+                Span::styled("s", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" to search, Arrow keys to navigate and Enter to select."),
+            ],
+            Style::default().add_modifier(Modifier::RAPID_BLINK),
+        ),
+        InputMode::Search => (
+            vec![
+                Span::raw("Press "),
+                Span::styled("Esc", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" to stop searching, "),
+                Span::styled("Enter", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" to confirm your search"),
+            ],
+            Style::default(),
+        ),
+    };
+    let mut text = Text::from(Spans::from(msg));
+    text.patch_style(style);
+    let help_message = Paragraph::new(text);
+    f.render_widget(help_message, chunks[2]);
 
     let query = Paragraph::new(Spans::from(app.query.clone()))
         .block(Block::default().borders(Borders::ALL).title("Search"))
