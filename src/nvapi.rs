@@ -7,6 +7,10 @@ use std::error::Error;
 const BASE_LINK: &str = "https://international.download.nvidia.com/Windows";
 const PCI_IDS: &str = "https://raw.githubusercontent.com/pciutils/pciids/master/pci.ids";
 
+static REGEX_VENDOR: Lazy<Regex> = Lazy::new(|| Regex::new("^([0-9a-f]{4})  (.*)$").unwrap());
+static REGEX_DEVICE: Lazy<Regex> = Lazy::new(|| Regex::new("^\t([0-9a-f]{4})  (.*)$").unwrap());
+//static REGEX_SUBDEVICE: Lazy<Regex> = Lazy::new(|| Regex::new("^\t\t([0-9a-f]{4}) (.*)$").unwrap());
+
 pub struct Driver {
     pub version: String,
     pub channel: DriverChannels,
@@ -109,9 +113,9 @@ pub async fn check_link(link: &str) -> Result<(), Box<dyn Error>> {
     }
 }
 
+use once_cell::sync::Lazy;
 use regex::Regex;
 
-// TODO: Improve parsing time, maybe regex is too slow?
 pub async fn detect_gpu() -> Result<String, Box<dyn Error>> {
     // get pci device id list
     // Hierarchy of pci device id list:
@@ -129,20 +133,14 @@ pub async fn detect_gpu() -> Result<String, Box<dyn Error>> {
         }
 
         // Vendors
-        for capture in Regex::new("^([0-9a-f]{4})  (.*)$")
-            .unwrap()
-            .captures_iter(line)
-        {
+        for capture in REGEX_VENDOR.captures_iter(line) {
             vendor_id = capture[1].to_string();
         }
 
         // Only check for NVIDIA devices
         if vendor_id == "10de" {
             // Devices
-            for capture in Regex::new("^\t([0-9a-f]{4})  (.*)$")
-                .unwrap()
-                .captures_iter(line)
-            {
+            for capture in REGEX_DEVICE.captures_iter(line) {
                 if device_id == capture[1].to_string() {
                     // remove brackets and irrelevant ids from device name
                     let name: String = capture[2]
@@ -158,7 +156,7 @@ pub async fn detect_gpu() -> Result<String, Box<dyn Error>> {
             }
             // SubDevices
             // Commenting for now, until I can get some sample ids to test with
-            /*for capture in Regex::new("^\t\t([0-9a-f]{4}) (.*)$").unwrap().captures_iter(line) {
+            /*for capture in REGEX_SUBDEVICE.captures_iter(line) {
                 if id == capture[1].to_string() {
                     println!("{}", capture[2].to_string());
                     return Ok(capture[2].to_string());
