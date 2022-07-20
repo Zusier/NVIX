@@ -5,8 +5,10 @@ edition = "2021"
 author = "Zusier"
 
 [features]
-default = ["tui"]
+default = ["tui", "wmi"]
 tui = ["dep:tui", "dep:crossterm"]
+reg = ["dep:winreg"] # reg is much more unreliable for gpu detection
+wmi = ["dep:wmi"]
 
 [profile.release]
 panic = "abort"
@@ -23,8 +25,9 @@ serde = { version = "1.0", features = ["derive"] }
 quick-xml = { version = "0.23.0", default-features= false, features = ["serde", "serialize"] }
 tui = { version = "0.18", optional= true }
 crossterm = { version = "0.23.2", optional= true }
-winreg = { version = "0.10.1", default-features = false }
-regex = { default-features = false, features = ["perf", "perf-inline", "perf-cache", "std"], version = "1.6.0"}
+winreg = { version = "0.10.1", default-features = false, optional = true }
+regex = { default-features = false, features = ["perf", "std"], version = "1.6.0"}
+wmi = { version = "0.11.0", optional = true }
 
 [dev-dependencies]
 tokio-test = { version = "0.4.2" }

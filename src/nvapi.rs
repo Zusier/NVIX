@@ -5,6 +5,7 @@
 use std::error::Error;
 
 const BASE_LINK: &str = "https://international.download.nvidia.com/Windows";
+const PCI_IDS: &str = "https://raw.githubusercontent.com/pciutils/pciids/master/pci.ids";
 
 pub struct Driver {
     pub version: String,
@@ -108,76 +109,64 @@ pub async fn check_link(link: &str) -> Result<(), Box<dyn Error>> {
     }
 }
 
-pub mod reg {
-    use std::error::Error;
+use regex::Regex;
 
-    use regex::Regex;
-    use winreg::{enums::HKEY_LOCAL_MACHINE, RegKey};
+// TODO: Improve parsing time, maybe regex is too slow?
+pub async fn detect_gpu() -> Result<String, Box<dyn Error>> {
+    // get pci device id list
+    // Hierarchy of pci device id list:
+    // Vendor or Generic Device Type (NVIDIA, or Display Adapter) ->
+    // Device -> (Optional) SubDevices, Revisions or Vendors (3090 -> 3090 founders edition)
+    let pci_ids = reqwest::get(PCI_IDS).await?.text().await.unwrap();
 
-    pub async fn detect_gpu() -> Result<String, Box<dyn Error>> {
-        let mut device_id = String::new();
+    let device_id = crate::nvapi::get_gpu_id().await?;
 
-        // get device id from registry (if any)
-        let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-        let key = hklm.open_subkey(
-            "SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}", // path for display adapters
-        )?;
-        let subkeys = key.enum_keys();
-        for subkey in subkeys {
-            let subkey = subkey.unwrap();
-            if subkey.len() == 4 {
-                // subkeys for devices are 4 characters long, e.g. "0000" or "0001"
-                let subkey = key.open_subkey(subkey)?;
-                device_id = subkey.get_value("MatchingDeviceId")?;
-                device_id = device_id.split("dev_").last().unwrap().to_string();
-            }
+    let mut vendor_id = String::new();
+    for line in pci_ids.lines() {
+        // Comments
+        if line.starts_with('#') {
+            continue;
         }
 
-        // get pci device id list
-        // Hierarchy of pci device id list:
-        // Vendor or Generic Device Type (NVIDIA, or Display Adapter) ->
-        // Device -> (Optional) SubDevices, Revisions or Vendors (3090 -> 3090 founders edition)
-        let pci_ids =
-            reqwest::get("https://raw.githubusercontent.com/pciutils/pciids/master/pci.ids")
-                .await?
-                .text()
-                .await?;
+        // Vendors
+        for capture in Regex::new("^([0-9a-f]{4})  (.*)$")
+            .unwrap()
+            .captures_iter(line)
+        {
+            vendor_id = capture[1].to_string();
+        }
 
-        let mut vendor_id = String::new();
-        for line in pci_ids.lines() {
-            // Comments
-            if line.starts_with('#') {
-                continue;
-            }
-
-            // Vendors
-            for capture in Regex::new("^([0-9a-f]{4})  (.*)$").unwrap().captures_iter(line) {
-                vendor_id = capture[1].to_string();
-            }
-
-            // Only check for NVIDIA devices
-            if vendor_id == "10de" {
-                // Devices
-                for capture in Regex::new("^\t([0-9a-f]{4})  (.*)$").unwrap().captures_iter(line) {
-                    if device_id == capture[1].to_string() {
-                        // remove brackets and irrelevant ids from device name
-                        let name: String = capture[2].split('[').last().unwrap().split(']').next().unwrap().to_string();
-                        println!("{name}");
-                        return Ok(name);
-                    }
+        // Only check for NVIDIA devices
+        if vendor_id == "10de" {
+            // Devices
+            for capture in Regex::new("^\t([0-9a-f]{4})  (.*)$")
+                .unwrap()
+                .captures_iter(line)
+            {
+                if device_id == capture[1].to_string() {
+                    // remove brackets and irrelevant ids from device name
+                    let name: String = capture[2]
+                        .split('[')
+                        .last()
+                        .unwrap()
+                        .split(']')
+                        .next()
+                        .unwrap()
+                        .to_string();
+                    return Ok(name);
                 }
-                // SubDevices
-                // Commenting for now, until I can get some sample ids to test with
-                /*for capture in Regex::new("^\t\t([0-9a-f]{4}) (.*)$").unwrap().captures_iter(line) {
-                    if id == capture[1].to_string() {
-                        println!("{}", capture[2].to_string());
-                        return Ok(capture[2].to_string());
-                    }
-                }*/
             }
+            // SubDevices
+            // Commenting for now, until I can get some sample ids to test with
+            /*for capture in Regex::new("^\t\t([0-9a-f]{4}) (.*)$").unwrap().captures_iter(line) {
+                if id == capture[1].to_string() {
+                    println!("{}", capture[2].to_string());
+                    return Ok(capture[2].to_string());
+                }
+            }*/
         }
-        Err("No matching device found".into())
     }
+    Err("No matching device found".into())
 }
 
 pub mod xml {
@@ -242,4 +231,61 @@ pub mod xml {
         }
         Ok(gpu_entries)
     }
+}
+
+#[cfg(feature = "wmi")]
+pub async fn get_gpu_id() -> Result<String, Box<dyn Error>> {
+    use serde::Deserialize;
+
+    let com_connection: wmi::COMLibrary = wmi::COMLibrary::new()?;
+    let wmi_connection: wmi::WMIConnection = wmi::WMIConnection::new(com_connection)?;
+
+    #[derive(Debug, Deserialize)]
+    #[serde(rename_all = "PascalCase")]
+    pub struct Win32_PnPSignedDriver {
+        hardware_id: Option<String>,
+        device_class: Option<String>,
+        device_name: Option<String>,
+    }
+
+    let results: Vec<Win32_PnPSignedDriver> = wmi_connection
+        .raw_query("SELECT HardwareID, DeviceClass, DeviceName FROM Win32_PnPSignedDriver")
+        .unwrap();
+    for driver in results {
+        // only try and match hardware_id if the device is a GPU
+        if driver.device_class == Some("DISPLAY".to_string())
+            || driver.device_name == Some("3D Video Controller".to_string())
+        {
+            if let Some(mut hwid) = driver.hardware_id {
+                hwid = hwid.split("DEV_").last().unwrap().to_string();
+                let parts: Vec<&str> = hwid.split('&').collect();
+                return Ok(parts[0].to_string().to_ascii_lowercase()); // WMI returns an uppercase hwid
+            }
+        }
+    }
+
+    Err("No matching device found".into())
+}
+
+#[cfg(feature = "reg")]
+pub async fn get_gpu_id() -> Result<String, Box<dyn Error>> {
+    let mut device_id = String::new();
+
+    // get device id from registry (if any)
+    let hklm = winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE);
+    let key = hklm.open_subkey(
+        "SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}", // path for display adapters
+    )?;
+    let subkeys = key.enum_keys();
+    for subkey in subkeys {
+        let subkey = subkey.unwrap();
+        if subkey.len() == 4 {
+            // subkeys for devices are 4 characters long, e.g. "0000" or "0001"
+            let subkey = key.open_subkey(subkey)?;
+            device_id = subkey.get_value("MatchingDeviceId")?;
+            device_id = device_id.split("dev_").last().unwrap().to_string();
+            return Ok(device_id);
+        }
+    }
+    Err("No matching device found".into())
 }
