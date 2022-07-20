@@ -138,6 +138,7 @@ fn run_app<B: Backend>(
                         KeyCode::Char('s') => {
                             app.input_mode = InputMode::Search;
                             app.query.clear();
+                            app.filtered_items.items = Vec::new();
                         }
                         KeyCode::Left => app.filtered_items.unselect(),
                         KeyCode::Down => app.filtered_items.next(),
@@ -198,16 +199,18 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         )
         .split(f.size());
 
-    // Iterate through all elements in the `items` app and append some debug text to it.
-    let items: Vec<ListItem> = app
+    let mut items: Vec<ListItem> = app
         .filtered_items
         .items
         .iter()
         .map(|i| {
-            let lines = vec![Spans::from(i.name.clone())];
-            ListItem::new(lines).style(Style::default().fg(Color::Black).bg(Color::White))
+            ListItem::new(i.name.clone()).style(Style::default().fg(Color::Black).bg(Color::White))
         })
         .collect();
+
+    // Fix some items showing up twice, not all though?
+    // TODO: Figure out why this happens
+    items.dedup();
 
     // Create a List from all list items and highlight the currently selected one
     let items = List::new(items)

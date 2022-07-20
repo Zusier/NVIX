@@ -172,7 +172,7 @@ pub mod xml {
 
     use serde::Deserialize;
 
-    #[derive(Clone)]
+    #[derive(Clone, PartialEq)]
     pub struct XmlGpuEntry {
         pub name: String, // e.g. "GeForce RTX 3090 Ti"
         pub series: u16,  // e.g. "120", the ParentID in the XML file
