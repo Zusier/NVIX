@@ -16,12 +16,6 @@ pub(crate) mod macros;
 struct Args {
     #[clap(long, value_parser, default_value = "false")]
     verbose: bool,
-
-    #[clap(long, value_parser, default_value = "false")]
-    test: bool,
-
-    #[clap(long, short)]
-    interactive: bool,
 }
 
 #[tokio::main]
@@ -36,9 +30,8 @@ struct Args {
 async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
-    if args.interactive {
-        interactive_mode().await;
-    }
+
+    interactive_mode().await;
     Ok(())
 }
 
