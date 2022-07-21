@@ -42,14 +42,14 @@ async fn interactive_mode() {
             if choice("Is this correct?") {
                 gpu
             } else {
-                tui::gpu_selector().await.unwrap().unwrap().name
+                tui::gpu_selector().await.unwrap().expect("GPU not selected, ui closed.").name
             }
         }
         Err(_) => {
             println!("Detected GPU: {}", "Unknown".red());
             println!("No GPU detected, please specify a GPU manually...");
             std::thread::sleep(std::time::Duration::from_secs(2));
-            tui::gpu_selector().await.unwrap().unwrap().name
+            tui::gpu_selector().await.unwrap().expect("GPU not selected, ui closed.").name
         }
     };
     clear!();
