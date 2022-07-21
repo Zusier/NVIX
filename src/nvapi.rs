@@ -35,7 +35,7 @@ impl std::fmt::Display for DriverChannels {
 }
 
 impl DriverChannels {
-    pub fn into_api(&self) -> u8 {
+    pub fn into_api(self) -> u8 {
         match self {
             DriverChannels::GameReady => 1,
             DriverChannels::Studio => 4,
@@ -76,7 +76,7 @@ impl std::fmt::Display for DriverEdition {
 }
 
 impl DriverEdition {
-    pub fn into_api(&self) -> u8 {
+    pub fn into_api(self) -> u8 {
         match self {
             DriverEdition::DCH => 1,
             DriverEdition::STD => 0,
@@ -128,7 +128,7 @@ pub async fn new_link(driver: &Driver) -> Result<Vec<String>, Box<dyn Error>> {
         }
     }
 
-    if valid.len() < 1 {
+    if valid.is_empty() {
         return Err("No valid links found!".into());
     }
     Ok(valid)
@@ -138,9 +138,9 @@ pub async fn check_link(link: &str) -> Result<(), Box<dyn Error>> {
     // Check if link exists
     let resp = reqwest::get(link).await?;
     if resp.status().is_success() {
-        return Ok(());
+        Ok(())
     } else {
-        return Err(resp.status().to_string().into());
+        Err(resp.status().to_string().into())
     }
 }
 

@@ -111,7 +111,7 @@ impl<'a> App {
         let filtered_items = StatefulList::with_items(items.clone());
         App {
             all_items: items,
-            filtered_items: filtered_items,
+            filtered_items,
             input_mode: InputMode::Normal,
             query: String::new(),
         }
