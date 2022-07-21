@@ -1,5 +1,4 @@
 use std::{error::Error, io::Write};
-use crate::macros::clear;
 
 use clap::Parser;
 use crossterm::style::Stylize;
@@ -8,7 +7,6 @@ mod nvapi;
 mod tests;
 #[cfg(feature = "tui")]
 mod tui;
-pub(crate) mod macros;
 
 /// A light-weight program to download, strip, tweak, and install a NVIDIA driver
 #[derive(Parser, Debug)]
@@ -53,7 +51,7 @@ async fn interactive_mode() {
             tui::gpu_selector().await.unwrap().expect("GPU not selected, ui closed.").name
         }
     };
-    clear!();
+    clear();
     println!("GPU Selected: {}", gpu.green());
 }
 
@@ -72,4 +70,9 @@ fn choice(prompt: &str) -> bool {
     // Invalid, repeat
     print!("\x1b[1A\x1b[K"); // Clears the line
     choice(prompt)
+}
+
+#[inline(always)]
+fn clear() {
+    print!("\x1B[2J\x1B[1;1H");
 }
