@@ -4,7 +4,7 @@
 
 use std::error::Error;
 
-const BASE_LINK: &str = "https://international.download.nvidia.com/Windows";
+const BASE_LINK: &str = "https://international.download.nvidia.com";
 const PCI_IDS: &str = "https://raw.githubusercontent.com/pciutils/pciids/master/pci.ids";
 
 static REGEX_VENDOR: Lazy<Regex> = Lazy::new(|| Regex::new("^([0-9a-f]{4})  (.*)$").unwrap());
@@ -30,6 +30,15 @@ impl std::fmt::Display for DriverChannels {
         match self {
             DriverChannels::GameReady => write!(f, ""),
             DriverChannels::Studio => write!(f, "-nsd"),
+        }
+    }
+}
+
+impl DriverChannels {
+    pub fn into_api(&self) -> u8 {
+        match self {
+            DriverChannels::GameReady => 1,
+            DriverChannels::Studio => 4,
         }
     }
 }
@@ -66,6 +75,15 @@ impl std::fmt::Display for DriverEdition {
     }
 }
 
+impl DriverEdition {
+    pub fn into_api(&self) -> u8 {
+        match self {
+            DriverEdition::DCH => 1,
+            DriverEdition::STD => 0,
+        }
+    }
+}
+
 #[derive(Default, PartialEq)]
 pub enum DriverWindowsVersion {
     #[default]
@@ -96,7 +114,7 @@ pub fn new_link(driver: &Driver) -> Result<Vec<String>, Box<dyn Error>> {
 
     // Construct link with values that always exist
     let links: Vec<String> = DriverWindowsVersion::iter().map(|winver| {
-        let link: String = format!("{BASE_LINK}/{version}/{version}-{platform}{winver}-64bit-international{channel}{edition}-whql.exe");
+        let link: String = format!("{BASE_LINK}/Windows/{version}/{version}-{platform}{winver}-64bit-international{channel}{edition}-whql.exe");
         link
     }).collect();
 
@@ -115,6 +133,9 @@ pub async fn check_link(link: &str) -> Result<(), Box<dyn Error>> {
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+use reqwest::Request;
+
+use self::xml::XmlGpuEntry;
 
 pub async fn detect_gpu() -> Result<String, Box<dyn Error>> {
     // get pci device id list
@@ -286,4 +307,28 @@ pub async fn get_gpu_id() -> Result<String, Box<dyn Error>> {
         }
     }
     Err("No matching device found".into())
+}
+
+pub async fn get_latest_driver_link(gpu: XmlGpuEntry, driver: Driver) -> String {
+    let psid = gpu.series;
+    let pfid = gpu.id;
+    let dtcid = driver.edition.into_api(); // 1=dch, 0=std
+    let whql = driver.channel.into_api(); // 1 = Game Ready, 4 = Studio
+
+    let link: String = format!("https://www.nvidia.com/Download/processDriver.aspx?psid={psid}&pfid={pfid}&osid=57&lid=1&whql={whql}&dtcid={dtcid}");
+    let link = reqwest::get(link).await.unwrap().text().await.unwrap();
+    parse_driver_page(link).await
+}
+
+/// returns direct link to download
+pub async fn parse_driver_page(link: String) -> String {
+    let html = reqwest::get(link).await.unwrap().text().await.unwrap();
+    let html = html
+        .split("?url=")
+        .last()
+        .unwrap()
+        .split('&')
+        .next()
+        .unwrap();
+    format!("{BASE_LINK}{html}")
 }

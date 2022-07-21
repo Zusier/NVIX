@@ -2,6 +2,8 @@ use std::{error::Error, io::Write};
 
 use clap::Parser;
 use crossterm::style::Stylize;
+
+use crate::nvapi::{xml::XmlGpuEntry, DriverChannels, DriverEdition, DriverPlatform};
 mod nvapi;
 #[cfg(test)]
 mod tests;
@@ -34,24 +36,75 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 async fn interactive_mode() {
     let gpu = nvapi::detect_gpu().await;
-    let gpu: String = match gpu {
+    let gpu: XmlGpuEntry = match gpu {
         Ok(gpu) => {
             println!("Detected GPU: {}", gpu.clone().green());
             if choice("Is this correct?") {
+                let list = nvapi::xml::get_gpu_list().await;
+                let gpu: XmlGpuEntry = list
+                    .unwrap()
+                    .iter()
+                    .find(|g| g.name == gpu)
+                    .unwrap()
+                    .clone();
                 gpu
             } else {
-                tui::gpu_selector().await.unwrap().expect("GPU not selected, ui closed.").name
+                tui::gpu_selector()
+                    .await
+                    .unwrap()
+                    .expect("GPU not selected, ui closed.")
             }
         }
         Err(_) => {
             println!("Detected GPU: {}", "Unknown".red());
             println!("No GPU detected, please specify a GPU manually...");
             std::thread::sleep(std::time::Duration::from_secs(2));
-            tui::gpu_selector().await.unwrap().expect("GPU not selected, ui closed.").name
+            tui::gpu_selector()
+                .await
+                .unwrap()
+                .expect("GPU not selected, ui closed.")
         }
     };
     clear();
-    println!("GPU Selected: {}", gpu.green());
+    println!("GPU Selected: {}", gpu.name.as_str().green()); // Not sure why adding terminal color requires a borrow but ok.
+    let latest = choice("Use the latest driver or choose manually?");
+    let channel = if choice("Use Game Ready or Studio driver?") {
+        DriverChannels::GameReady
+    } else {
+        DriverChannels::Studio
+    };
+    let platform = if choice("Desktop or Mobile GPU?") {
+        DriverPlatform::Desktop
+    } else {
+        DriverPlatform::Notebook
+    };
+    let edition = if choice("Use DCH (preferred) or Standard?") {
+        DriverEdition::DCH
+    } else {
+        DriverEdition::STD
+    };
+    if latest {
+        let driver = nvapi::Driver {
+            version: "".to_string(),
+            channel,
+            platform,
+            edition,
+        };
+        println!("{}", nvapi::get_latest_driver_link(gpu, driver).await);
+    } else {
+        println!("Enter your driver version: ");
+        let mut input = String::new();
+        std::io::stdout().flush().unwrap();
+        std::io::stdin().read_line(&mut input).unwrap();
+        input = input.trim().to_string();
+        let driver = nvapi::Driver {
+            version: input,
+            channel,
+            platform,
+            edition,
+        };
+        println!("{}", nvapi::new_link(&driver).unwrap()[0]);
+    }
 }
 
 /// Prints prompt with a y/n amswer, if it is invalid it will simply clear the prompt and recurse
