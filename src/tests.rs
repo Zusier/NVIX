@@ -8,17 +8,8 @@ macro_rules! bo {
 }
 
 fn test_links(driver: &Driver) -> Vec<String> {
-    let links = nvapi::new_link(&driver).unwrap();
-
-    let mut valid: Vec<String> = Vec::new();
-
-    for link in links {
-        let result = bo!(nvapi::check_link(&link));
-        if result.is_ok() {
-            valid.push(link);
-        }
-    }
-    valid
+    let links = bo!(nvapi::new_link(&driver)).unwrap();
+    links
 }
 
 #[test]
