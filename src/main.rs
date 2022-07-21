@@ -1,4 +1,5 @@
 use std::{error::Error, io::Write};
+use crate::macros::clear;
 
 use clap::Parser;
 mod nvapi;
@@ -6,6 +7,7 @@ mod nvapi;
 mod tests;
 #[cfg(feature = "tui")]
 mod tui;
+pub(crate) mod macros;
 
 /// A light-weight program to download, strip, tweak, and install a NVIDIA driver
 #[derive(Parser, Debug)]
@@ -31,11 +33,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
 async fn interactive_mode() {
     let gpu_orig = nvapi::detect_gpu().await;
     let gpu: String = match gpu_orig {
-        Ok(gpu_orig) =>  {
+        Ok(gpu_orig) => {
             println!("Detected GPU: {gpu_orig}");
             if choice("Is this correct?") {
                 // query.. driver
@@ -49,6 +50,7 @@ async fn interactive_mode() {
             tui::gpu_selector().await.unwrap().unwrap().name
         }
     };
+    clear!();
     println!("GPU Selected: {gpu}");
 }
 
@@ -67,11 +69,4 @@ fn choice(prompt: &str) -> bool {
     // Invalid, repeat
     print!("\x1b[1A\x1b[K"); // Clears the line
     choice(prompt)
-}
-
-
-macro_rules! clear {
-    () => {
-        print!("{}[2J", 27 as char);
-    };
 }
