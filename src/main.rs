@@ -103,7 +103,7 @@ async fn interactive_mode() {
             platform,
             edition,
         };
-        println!("{}", nvapi::new_link(&driver).unwrap()[0]);
+        println!("{}", nvapi::new_link(&driver).await.unwrap()[0]); // TODO: if no valid links exist.. use latest driver as fallback.
     }
 }
 

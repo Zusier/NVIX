@@ -106,19 +106,32 @@ impl DriverWindowsVersion {
     }
 }
 
-pub fn new_link(driver: &Driver) -> Result<Vec<String>, Box<dyn Error>> {
-    let version: &str = &driver.version;
-    let platform: &str = &driver.platform.to_string();
-    let channel: &str = &driver.channel.to_string();
-    let edition: &str = &driver.edition.to_string();
+pub async fn new_link(driver: &Driver) -> Result<Vec<String>, Box<dyn Error>> {
+    let mut valid: Vec<String> = Vec::new();
+    {
+        let version: &str = &driver.version;
+        let platform: &str = &driver.platform.to_string();
+        let channel: &str = &driver.channel.to_string();
+        let edition: &str = &driver.edition.to_string();
 
-    // Construct link with values that always exist
-    let links: Vec<String> = DriverWindowsVersion::iter().map(|winver| {
+        // Construct link with values that always exist
+        let links: Vec<String> = DriverWindowsVersion::iter().map(|winver| {
         let link: String = format!("{BASE_LINK}/Windows/{version}/{version}-{platform}{winver}-64bit-international{channel}{edition}-whql.exe");
         link
     }).collect();
 
-    Ok(links)
+        // check links
+        for link in links {
+            if check_link(link.as_str()).await.is_ok() {
+                valid.push(link);
+            }
+        }
+    }
+
+    if valid.len() < 1 {
+        return Err("No valid links found!".into());
+    }
+    Ok(valid)
 }
 
 pub async fn check_link(link: &str) -> Result<(), Box<dyn Error>> {
@@ -133,7 +146,6 @@ pub async fn check_link(link: &str) -> Result<(), Box<dyn Error>> {
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use reqwest::Request;
 
 use self::xml::XmlGpuEntry;
 
