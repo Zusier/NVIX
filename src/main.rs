@@ -33,22 +33,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 
 async fn interactive_mode() {
-    let mut gpu = nvapi::detect_gpu().await;
-    match gpu {
-        Ok(mut gpu) => {
-            println!("Detected GPU: {gpu}");
+    let gpu_orig = nvapi::detect_gpu().await;
+    let gpu: String = match gpu_orig {
+        Ok(gpu_orig) =>  {
+            println!("Detected GPU: {gpu_orig}");
             if choice("Is this correct?") {
                 // query.. driver
             }
-            gpu = tui::gpu_selector().await.unwrap().unwrap().name;
+            tui::gpu_selector().await.unwrap().unwrap().name
         }
         Err(_) => {
             println!("Detected GPU: Unkonwn");
             println!("No GPU detected, please specify a GPU manually...");
             std::thread::sleep(std::time::Duration::from_secs(1));
-            gpu = Ok(tui::gpu_selector().await.unwrap().unwrap().name);
+            tui::gpu_selector().await.unwrap().unwrap().name
         }
-    }
+    };
+    println!("GPU Selected: {gpu}");
 }
 
 /// Prints prompt with a y/n amswer, if it is invalid it will simply clear the prompt and recurse
@@ -66,4 +67,11 @@ fn choice(prompt: &str) -> bool {
     // Invalid, repeat
     print!("\x1b[1A\x1b[K"); // Clears the line
     choice(prompt)
+}
+
+
+macro_rules! clear {
+    () => {
+        print!("{}[2J", 27 as char);
+    };
 }
