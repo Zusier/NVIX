@@ -10,6 +10,8 @@ mod tests;
 #[cfg(feature = "tui")]
 mod tui;
 
+const TMP_FILE: &str = "tmp_nvidia.exe";
+
 /// A light-weight program to download, strip, tweak, and install a NVIDIA driver
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -90,7 +92,9 @@ async fn interactive_mode() {
             platform,
             edition,
         };
-        println!("{}", nvapi::get_latest_driver_link(gpu, driver).await);
+        nvapi::download(nvapi::get_latest_driver_link(gpu, driver).await)
+            .await
+            .unwrap();
     } else {
         println!("Enter your driver version: ");
         let mut input = String::new();
@@ -103,7 +107,9 @@ async fn interactive_mode() {
             platform,
             edition,
         };
-        println!("{}", nvapi::new_link(&driver).await.unwrap()[0]); // TODO: if no valid links exist.. use latest driver as fallback.
+        nvapi::download(nvapi::new_link(&driver).await.unwrap()[0].clone())
+            .await
+            .unwrap(); // TODO: if no valid links exist.. use latest driver as fallback.
     }
 }
 

@@ -2,7 +2,7 @@
 //! This module contains actions related to the NVIDIA API. Not to be confused with NVIDIA's driver api.
 //! Reference: <https://github.com/fyr77/EnvyUpdate/wiki/Nvidia-API>
 
-use std::error::Error;
+use std::{error::Error, fs::File, io::Cursor};
 
 const BASE_LINK: &str = "https://international.download.nvidia.com";
 const PCI_IDS: &str = "https://raw.githubusercontent.com/pciutils/pciids/master/pci.ids";
@@ -343,4 +343,14 @@ pub async fn parse_driver_page(link: String) -> String {
         .next()
         .unwrap();
     format!("{BASE_LINK}{html}")
+}
+
+pub async fn download(link: String) -> Result<(), Box<dyn Error>> {
+    println!("Downloading driver! Please wait...");
+    // TODO: Progress bar?
+    let resp = reqwest::get(link).await?;
+    let mut file = File::create(crate::TMP_FILE)?;
+    let mut content = Cursor::new(resp.bytes().await?);
+    std::io::copy(&mut content, &mut file).unwrap();
+    Ok(())
 }
