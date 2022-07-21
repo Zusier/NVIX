@@ -28,7 +28,6 @@ struct Args {
 async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
-
     interactive_mode().await;
     Ok(())
 }
@@ -68,11 +67,18 @@ fn choice(prompt: &str) -> bool {
         return false;
     }
     // Invalid, repeat
-    print!("\x1b[1A\x1b[K"); // Clears the line
+    clear_ln();
     choice(prompt)
 }
 
 #[inline(always)]
+/// Clears the terminal and resets cursor to top left
 fn clear() {
     print!("\x1B[2J\x1B[1;1H");
+}
+
+#[inline(always)]
+/// Clears the current line
+fn clear_ln() {
+    print!("\x1b[1A\x1b[K");
 }
