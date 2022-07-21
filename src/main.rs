@@ -2,6 +2,7 @@ use std::{error::Error, io::Write};
 use crate::macros::clear;
 
 use clap::Parser;
+use crossterm::style::Stylize;
 mod nvapi;
 #[cfg(test)]
 mod tests;
@@ -34,24 +35,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn interactive_mode() {
-    let gpu_orig = nvapi::detect_gpu().await;
-    let gpu: String = match gpu_orig {
-        Ok(gpu_orig) => {
-            println!("Detected GPU: {gpu_orig}");
+    let gpu = nvapi::detect_gpu().await;
+    let gpu: String = match gpu {
+        Ok(gpu) => {
+            println!("Detected GPU: {}", gpu.clone().green());
             if choice("Is this correct?") {
-                // query.. driver
+                gpu
+            } else {
+                tui::gpu_selector().await.unwrap().unwrap().name
             }
-            tui::gpu_selector().await.unwrap().unwrap().name
         }
         Err(_) => {
-            println!("Detected GPU: Unkonwn");
+            println!("Detected GPU: {}", "Unknown".red());
             println!("No GPU detected, please specify a GPU manually...");
-            std::thread::sleep(std::time::Duration::from_secs(1));
+            std::thread::sleep(std::time::Duration::from_secs(2));
             tui::gpu_selector().await.unwrap().unwrap().name
         }
     };
     clear!();
-    println!("GPU Selected: {gpu}");
+    println!("GPU Selected: {}", gpu.green());
 }
 
 /// Prints prompt with a y/n amswer, if it is invalid it will simply clear the prompt and recurse
