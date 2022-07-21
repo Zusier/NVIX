@@ -25,6 +25,14 @@ struct Args {
 }
 
 #[tokio::main]
+/// Planned flow of app:
+/// Detect GPU, if not found, prompt user to select one manually.
+/// Prompt for latest driver or specific driver version (user can view available versions if needed)
+/// A few prompts about the driver (Notebook, DCH, etc)
+/// (future) Strip driver?
+/// (future) Tweak driver?
+/// install driver or.. (future) package into installer
+/// (future) export config file for next time?
 async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
