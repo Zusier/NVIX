@@ -174,7 +174,7 @@ pub async fn detect_gpu() -> Result<String, Box<dyn Error>> {
         if vendor_id == "10de" {
             // Devices
             for capture in REGEX_DEVICE.captures_iter(line) {
-                if device_id == capture[1].to_string() {
+                if device_id == capture[1] {
                     // remove brackets and irrelevant ids from device name
                     let name: String = capture[2]
                         .split('[')
