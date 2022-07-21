@@ -11,7 +11,7 @@ mod tests;
 mod tui;
 
 const TMP_FILE: &str = "tmp_nvidia.exe";
-
+const TMP_EXTRACT_DIR: &str = "TMP";
 /// A light-weight program to download, strip, tweak, and install a NVIDIA driver
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -37,7 +37,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn interactive_mode() {
+    #[cfg(target_os = "windows")]
     let gpu = nvapi::detect_gpu().await;
+    #[cfg(target_os = "windows")]
     let gpu: XmlGpuEntry = match gpu {
         Ok(gpu) => {
             println!("Detected GPU: {}", gpu.clone().green());
@@ -67,6 +69,11 @@ async fn interactive_mode() {
                 .expect("GPU not selected, ui closed.")
         }
     };
+    #[cfg(not(target_os = "windows"))]
+    let gpu = tui::gpu_selector()
+        .await
+        .unwrap()
+        .expect("GPU not selected, ui closed.");
     clear();
     println!("GPU Selected: {}", gpu.name.as_str().green()); // Not sure why adding terminal color requires a borrow but ok.
     let latest = choice("Use the latest driver or choose manually?");
@@ -111,6 +118,8 @@ async fn interactive_mode() {
             .await
             .unwrap(); // TODO: if no valid links exist.. use latest driver as fallback.
     }
+    println!("Downloaded driver, extracting...");
+    // TODO: find library compatible with the nvidia installer or (try not to) download 7z
 }
 
 /// Prints prompt with a y/n amswer, if it is invalid it will simply clear the prompt and recurse

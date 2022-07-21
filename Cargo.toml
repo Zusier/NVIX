@@ -7,7 +7,7 @@ author = "Zusier"
 [features]
 default = ["tui", "wmi"]
 tui = ["dep:tui", "dep:crossterm"]
-reg = ["dep:winreg"] # reg is much more unreliable for gpu detection
+reg = ["dep:winreg"]
 wmi = ["dep:wmi"]
 
 [profile.release]
@@ -29,7 +29,7 @@ winreg = { version = "0.10.1", default-features = false, optional = true }
 regex = { default-features = false, features = ["perf", "std"], version = "1.6.0"}
 wmi = { version = "0.11.0", optional = true }
 once_cell = { version = "1.13.0" }
-colored = { git = "https://github.com/mackwic/colored.git", commit = "11ffd20e7b5d1b48e4de7bb78ced26131ae5e114"}
+colored = { git = "https://github.com/mackwic/colored.git"}
 
 [dev-dependencies]
 tokio-test = { version = "0.4.2" }
