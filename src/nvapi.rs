@@ -146,19 +146,21 @@ pub async fn check_link(link: &str) -> Result<(), Box<dyn Error>> {
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+use tokio::join;
 
 use self::xml::XmlGpuEntry;
 
 pub async fn detect_gpu() -> Result<String, Box<dyn Error>> {
+    let mut vendor_id = String::new();
+
     // get pci device id list
     // Hierarchy of pci device id list:
     // Vendor or Generic Device Type (NVIDIA, or Display Adapter) ->
     // Device -> (Optional) SubDevices, Revisions or Vendors (3090 -> 3090 founders edition)
-    let pci_ids = reqwest::get(PCI_IDS).await?.text().await.unwrap();
+    let (pci_ids, device_id) = join!(reqwest::get(PCI_IDS), crate::nvapi::get_gpu_id());
+    let pci_ids = pci_ids?.text().await?;
+    let device_id = device_id?;
 
-    let device_id = crate::nvapi::get_gpu_id().await?;
-
-    let mut vendor_id = String::new();
     for line in pci_ids.lines() {
         // Comments
         if line.starts_with('#') {
