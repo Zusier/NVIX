@@ -1,7 +1,8 @@
-use std::{error::Error, io::Write};
+use std::{error::Error, io::Write, path::PathBuf};
 
 use clap::Parser;
 use crossterm::style::Stylize;
+use once_cell::sync::Lazy;
 
 use crate::nvapi::{xml::XmlGpuEntry, DriverChannels, DriverEdition, DriverPlatform};
 mod nvapi;
@@ -10,8 +11,23 @@ mod tests;
 #[cfg(feature = "tui")]
 mod tui;
 
-const TMP_FILE: &str = "tmp_nvidia.exe";
-const TMP_EXTRACT_DIR: &str = "TMP";
+static TMP_FILE: Lazy<PathBuf> = Lazy::new(|| {
+    let mut path = PathBuf::from(std::env::temp_dir());
+    path.push("tmp_nvidia.exe");
+    path
+});
+static TMP_EXTRACT_DIR: Lazy<PathBuf> = Lazy::new(|| {
+    let mut path = PathBuf::from(std::env::temp_dir());
+    path.push("NVIX");
+    path
+});
+static TMP_SEVENZIP_FILE: Lazy<PathBuf> = Lazy::new(|| {
+    let mut path = PathBuf::from(std::env::temp_dir());
+    path.push("tmp_7z.exe");
+    path
+});
+
+type ResultDynError<T> = Result<T, Box<dyn Error>>;
 /// A light-weight program to download, strip, tweak, and install a NVIDIA driver
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -118,8 +134,7 @@ async fn interactive_mode() {
             .await
             .unwrap(); // TODO: if no valid links exist.. use latest driver as fallback.
     }
-    println!("Downloaded driver, extracting...");
-    // TODO: find library compatible with the nvidia installer or (try not to) download 7z
+    nvapi::extract().await.expect("Well shit");
 }
 
 /// Prints prompt with a y/n amswer, if it is invalid it will simply clear the prompt and recurse

@@ -1,11 +1,12 @@
 //! # NVIDIA API
-//! This module contains actions related to the NVIDIA API. Not to be confused with NVIDIA's driver api.
+//! This module contains actions related to th&e NVIDIA API. Not to be confused with NVIDIA's driver api.
 //! Reference: <https://github.com/fyr77/EnvyUpdate/wiki/Nvidia-API>
 
 use std::{error::Error, fs::File, io::Cursor};
 
 const BASE_LINK: &str = "https://international.download.nvidia.com";
 const PCI_IDS: &str = "https://raw.githubusercontent.com/pciutils/pciids/master/pci.ids";
+const SEVENZIP_LINK: &str = "https://www.7-zip.org/a/7zr.exe"; // I can't have a '7' at the start of a constant? lol
 
 static REGEX_VENDOR: Lazy<Regex> = Lazy::new(|| Regex::new("^([0-9a-f]{4})  (.*)$").unwrap());
 static REGEX_DEVICE: Lazy<Regex> = Lazy::new(|| Regex::new("^\t([0-9a-f]{4})  (.*)$").unwrap());
@@ -148,6 +149,8 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use tokio::join;
 
+use crate::ResultDynError;
+
 use self::xml::XmlGpuEntry;
 
 pub async fn detect_gpu() -> Result<String, Box<dyn Error>> {
@@ -207,6 +210,8 @@ pub mod xml {
 
     use serde::Deserialize;
 
+    use crate::ResultDynError;
+
     #[derive(Clone, PartialEq)]
     pub struct XmlGpuEntry {
         pub name: String, // e.g. "GeForce RTX 3090 Ti"
@@ -248,7 +253,7 @@ pub mod xml {
         pub value: u16,
     }
 
-    pub async fn get_gpu_list() -> Result<Vec<XmlGpuEntry>, Box<dyn Error>> {
+    pub async fn get_gpu_list() -> ResultDynError<Vec<XmlGpuEntry>> {
         let xml =
             reqwest::get("https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=3");
         let deserialized: LookupValueSearch = quick_xml::de::from_str(&xml.await?.text().await?)?;
@@ -267,7 +272,7 @@ pub mod xml {
 }
 
 #[cfg(feature = "wmi")]
-pub async fn get_gpu_id() -> Result<String, Box<dyn Error>> {
+pub async fn get_gpu_id() -> ResultDynError<String> {
     use serde::Deserialize;
 
     let com_connection: wmi::COMLibrary = wmi::COMLibrary::new()?;
@@ -347,12 +352,39 @@ pub async fn parse_driver_page(link: String) -> String {
     format!("{BASE_LINK}{html}")
 }
 
-pub async fn download(link: String) -> Result<(), Box<dyn Error>> {
+pub async fn download(link: String) -> ResultDynError<()> {
     println!("Downloading driver! Please wait...");
     // TODO: Progress bar?
     let resp = reqwest::get(link).await?;
-    let mut file = File::create(crate::TMP_FILE)?;
+    let mut file = File::create(crate::TMP_FILE.clone())?;
     let mut content = Cursor::new(resp.bytes().await?);
     std::io::copy(&mut content, &mut file).unwrap();
+    Ok(())
+}
+
+// note: I have tried every rust archive library and other workarounds in order to not use external dependencies without luck.. feel free to suggest a different way!
+pub async fn extract() -> ResultDynError<()> {
+    println!("Extracting driver! Please wait...");
+
+    // download 7z
+    {
+        let resp = reqwest::get(SEVENZIP_LINK).await?;
+        let mut file = File::create(crate::TMP_SEVENZIP_FILE.clone())?;
+        let mut content = Cursor::new(resp.bytes().await?);
+        std::io::copy(&mut content, &mut file).unwrap();
+    }
+
+    // extract the setup
+    let mut command = std::process::Command::new(crate::TMP_SEVENZIP_FILE.clone());
+    command
+        .arg("x")
+        .arg("-aoa") // overwrite, no prompt
+        .arg("-bb0")
+        .arg("-bso0")
+        .arg("-bse1")
+        .arg("-bsp1")
+        .arg(crate::TMP_FILE.clone())
+        .arg(format!("-o{}", crate::TMP_EXTRACT_DIR.clone().display()));
+    command.spawn().unwrap().wait().unwrap(); // TODO: handle unwraps
     Ok(())
 }
