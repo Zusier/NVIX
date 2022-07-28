@@ -149,8 +149,6 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use tokio::join;
 
-use crate::ResultDynError;
-
 use self::xml::XmlGpuEntry;
 
 pub async fn detect_gpu() -> Result<String, Box<dyn Error>> {
@@ -206,9 +204,9 @@ pub async fn detect_gpu() -> Result<String, Box<dyn Error>> {
 }
 
 pub mod xml {
-    use serde::Deserialize;
+    use std::error::Error;
 
-    use crate::ResultDynError;
+    use serde::Deserialize;
 
     #[derive(Clone, PartialEq)]
     pub struct XmlGpuEntry {
@@ -251,7 +249,7 @@ pub mod xml {
         pub value: u16,
     }
 
-    pub async fn get_gpu_list() -> ResultDynError<Vec<XmlGpuEntry>> {
+    pub async fn get_gpu_list() ->  Result<Vec<XmlGpuEntry>, Box<dyn Error>> {
         let xml =
             reqwest::get("https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=3");
         let deserialized: LookupValueSearch = quick_xml::de::from_str(&xml.await?.text().await?)?;
@@ -270,7 +268,7 @@ pub mod xml {
 }
 
 #[cfg(feature = "wmi")]
-pub async fn get_gpu_id() -> ResultDynError<String> {
+pub async fn get_gpu_id() -> Result<String, Box<dyn Error>> {
     use serde::Deserialize;
 
     let com_connection: wmi::COMLibrary = wmi::COMLibrary::new()?;
@@ -326,20 +324,20 @@ pub async fn get_gpu_id() -> Result<String, Box<dyn Error>> {
     Err("No matching device found".into())
 }
 
-pub async fn get_latest_driver_link(gpu: XmlGpuEntry, driver: Driver) -> String {
+pub async fn get_latest_driver_link(gpu: XmlGpuEntry, driver: Driver) -> Result<String, Box<dyn Error>> {
     let psid = gpu.series;
     let pfid = gpu.id;
     let dtcid = driver.edition.into_api(); // 1=dch, 0=std
     let whql = driver.channel.into_api(); // 1 = Game Ready, 4 = Studio
 
     let link: String = format!("https://www.nvidia.com/Download/processDriver.aspx?psid={psid}&pfid={pfid}&osid=57&lid=1&whql={whql}&dtcid={dtcid}");
-    let link = reqwest::get(link).await.unwrap().text().await.unwrap();
-    parse_driver_page(link).await
+    let link = reqwest::get(link).await?.text().await?;
+    Ok(parse_driver_page(link).await?)
 }
 
 /// returns direct link to download
-pub async fn parse_driver_page(link: String) -> String {
-    let html = reqwest::get(link).await.unwrap().text().await.unwrap();
+pub async fn parse_driver_page(link: String) -> Result<String, Box<dyn Error>> {
+    let html = reqwest::get(link).await?.text().await?;
     let html = html
         .split("?url=")
         .last()
@@ -347,10 +345,10 @@ pub async fn parse_driver_page(link: String) -> String {
         .split('&')
         .next()
         .unwrap();
-    format!("{BASE_LINK}{html}")
+    Ok(format!("{BASE_LINK}{html}"))
 }
 
-pub async fn download(link: String) -> ResultDynError<()> {
+pub async fn download(link: String) -> Result<(), Box<dyn Error>> {
     println!("Downloading driver! Please wait...");
     // TODO: Progress bar?
     let resp = reqwest::get(link).await?;
@@ -361,7 +359,7 @@ pub async fn download(link: String) -> ResultDynError<()> {
 }
 
 // note: I have tried every rust archive library and other workarounds in order to not use external dependencies without luck.. feel free to suggest a different way!
-pub async fn extract() -> ResultDynError<()> {
+pub async fn extract() -> Result<(), Box<dyn Error>> {
     println!("Extracting driver! Please wait...");
 
     // download 7z

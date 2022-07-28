@@ -1,4 +1,4 @@
-use std::{error::Error, io::Write, path::PathBuf};
+use std::{error::Error, io::Result, io::Write, path::PathBuf};
 
 use clap::Parser;
 use crossterm::style::Stylize;
@@ -6,6 +6,7 @@ use once_cell::sync::Lazy;
 
 use crate::nvapi::{xml::XmlGpuEntry, DriverChannels, DriverEdition, DriverPlatform};
 mod nvapi;
+mod setup;
 #[cfg(test)]
 mod tests;
 #[cfg(feature = "tui")]
@@ -27,7 +28,6 @@ static TMP_SEVENZIP_FILE: Lazy<PathBuf> = Lazy::new(|| {
     path
 });
 
-type ResultDynError<T> = Result<T, Box<dyn Error>>;
 /// A light-weight program to download, strip, tweak, and install a NVIDIA driver
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -45,7 +45,7 @@ struct Args {
 /// (future) Tweak driver?
 /// install driver or.. (future) package into installer
 /// (future) export config file for next time?
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<()> {
     let args = Args::parse();
 
     interactive_mode().await;
@@ -115,7 +115,7 @@ async fn interactive_mode() {
             platform,
             edition,
         };
-        nvapi::download(nvapi::get_latest_driver_link(gpu, driver).await)
+        nvapi::download(nvapi::get_latest_driver_link(gpu, driver).await.unwrap())
             .await
             .unwrap();
     } else {
