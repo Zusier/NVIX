@@ -206,8 +206,6 @@ pub async fn detect_gpu() -> Result<String, Box<dyn Error>> {
 }
 
 pub mod xml {
-    use std::error::Error;
-
     use serde::Deserialize;
 
     use crate::ResultDynError;
@@ -356,7 +354,7 @@ pub async fn download(link: String) -> ResultDynError<()> {
     println!("Downloading driver! Please wait...");
     // TODO: Progress bar?
     let resp = reqwest::get(link).await?;
-    let mut file = File::create(crate::TMP_FILE.clone())?;
+    let mut file = File::create(crate::TMP_FILE.as_path())?;
     let mut content = Cursor::new(resp.bytes().await?);
     std::io::copy(&mut content, &mut file).unwrap();
     Ok(())
@@ -369,13 +367,13 @@ pub async fn extract() -> ResultDynError<()> {
     // download 7z
     {
         let resp = reqwest::get(SEVENZIP_LINK).await?;
-        let mut file = File::create(crate::TMP_SEVENZIP_FILE.clone())?;
+        let mut file = File::create(crate::TMP_SEVENZIP_FILE.as_path())?;
         let mut content = Cursor::new(resp.bytes().await?);
         std::io::copy(&mut content, &mut file).unwrap();
     }
 
     // extract the setup
-    let mut command = std::process::Command::new(crate::TMP_SEVENZIP_FILE.clone());
+    let mut command = std::process::Command::new(crate::TMP_SEVENZIP_FILE.as_path());
     command
         .arg("x")
         .arg("-aoa") // overwrite, no prompt
@@ -384,7 +382,7 @@ pub async fn extract() -> ResultDynError<()> {
         .arg("-bse1")
         .arg("-bsp1")
         .arg(crate::TMP_FILE.clone())
-        .arg(format!("-o{}", crate::TMP_EXTRACT_DIR.clone().display()));
+        .arg(format!("-o{}", crate::TMP_EXTRACT_DIR.as_path().display()));
     command.spawn().unwrap().wait().unwrap(); // TODO: handle unwraps
     Ok(())
 }
