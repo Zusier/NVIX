@@ -83,10 +83,10 @@ static COMPONENTS: Lazy<Vec<Component>> = Lazy::new(|| {
         }
         component.paths.iter().for_each(|path| match path.is_dir() {
             true => {
-                std::fs::remove_file(&path).unwrap();
+                std::fs::remove_dir_all(&path).unwrap(); // TODO: Handle unwrap, structure is bound to be inconsistent on older/newer driver versions
             }
             false => {
-                std::fs::remove_dir(&path).unwrap();
+                std::fs::remove_file(&path).unwrap();
             }
         });
     }
