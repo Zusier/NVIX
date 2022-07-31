@@ -249,7 +249,7 @@ pub mod xml {
         pub value: u16,
     }
 
-    pub async fn get_gpu_list() ->  Result<Vec<XmlGpuEntry>, Box<dyn Error>> {
+    pub async fn get_gpu_list() -> Result<Vec<XmlGpuEntry>, Box<dyn Error>> {
         let xml =
             reqwest::get("https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=3");
         let deserialized: LookupValueSearch = quick_xml::de::from_str(&xml.await?.text().await?)?;
@@ -324,7 +324,10 @@ pub async fn get_gpu_id() -> Result<String, Box<dyn Error>> {
     Err("No matching device found".into())
 }
 
-pub async fn get_latest_driver_link(gpu: XmlGpuEntry, driver: Driver) -> Result<String, Box<dyn Error>> {
+pub async fn get_latest_driver_link(
+    gpu: XmlGpuEntry,
+    driver: Driver,
+) -> Result<String, Box<dyn Error>> {
     let psid = gpu.series;
     let pfid = gpu.id;
     let dtcid = driver.edition.into_api(); // 1=dch, 0=std
