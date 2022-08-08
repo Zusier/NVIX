@@ -3,10 +3,10 @@ name = "nvix"
 version = "0.1.0"
 edition = "2021"
 author = "Zusier"
+build = "build.rs"
 
 [features]
-default = ["tui", "wmi"]
-tui = ["dep:tui", "dep:crossterm"]
+default = ["wmi"]
 reg = ["dep:winreg"]
 wmi = ["dep:wmi"]
 
@@ -23,13 +23,14 @@ reqwest = { version = "0.11.11", default-features = false, features = ["default-
 tokio = { version = "1.20.0", default-features = false, features = ["macros", "rt-multi-thread"] }
 serde = { version = "1.0", features = ["derive"] }
 quick-xml = { version = "0.23.0", default-features= false, features = ["serde", "serialize"] }
-tui = { version = "0.18", optional= true }
-crossterm = { version = "0.23.2", optional= true }
 winreg = { version = "0.10.1", default-features = false, optional = true }
 regex = { default-features = false, features = ["perf", "std"], version = "1.6.0"}
 wmi = { version = "0.11.0", optional = true }
 once_cell = { version = "1.13.0" }
-colored = { git = "https://github.com/mackwic/colored.git"}
+slint = { version = "0.2"}
+
+[build-dependencies]
+slint-build = "0.2"
 
 [dev-dependencies]
 tokio-test = { version = "0.4.2" }

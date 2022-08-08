@@ -1,0 +1,60 @@
+import { Button, VerticalBox, ComboBox, LineEdit} from "std-widgets.slint";
+
+export AppWindow := Window {
+    height: 650px;
+    width: 400px;
+    title: "NVIX";
+    padding: 10px;
+    property <int> active-page: 0;
+    property <[string]> list: [];
+    property <string> selection: "";
+    callback search(string);
+    callback page_move(int);
+    VerticalBox {
+        width: parent.width;
+        height: parent.height;
+        main := Rectangle {
+            Rectangle{
+                search := LineEdit {
+                height: 50px;
+                width: parent.width;
+                placeholder-text: "Search for a GPU:";
+                text: "";
+                edited => { root.search(text); }
+                }
+            }
+            selector := ComboBox {
+                width: 250px;
+                height: 100px;
+                y: parent.y + 50px;
+                model: list;
+                selected => {
+                    selection = selector.current-value;
+                }
+            }
+        }
+        nav := Rectangle {
+            height: 50px;
+            width: parent.width;
+            Button {
+                width: (parent.width / 2) - 10px;
+                height: parent.height;
+                text: "Back";
+                clicked => {
+                    active-page=active-page - 1;
+                    page_move(active-page);
+                }
+            }
+            Button {
+                width: (parent.width / 2) - 10px;
+                height: parent.height;
+                x: (parent.width / 2) - 5px;
+                text: "Next";
+                clicked => {
+                    active-page+=1;
+                    page_move(active-page);
+                }
+            }
+        }
+    }
+}
